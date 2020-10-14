@@ -1,0 +1,17 @@
+<html>
+<body>
+<div>
+  <h1 class="ml-3"><font size="5">メモ一覧</font></h1>
+  <div class = "border border-dark col-auto">
+    <% @memo_data["memos"].each do |one_data| %>
+      <% one_data.each do |memo_id, memo| %>
+        <ul>
+          <li><a href = "/memos/<%= memo_id %>"><%= memo["title"] %></a></li>
+        </ul>
+      <% end%>
+    <% end%>
+  </div>
+  <a class = "ml-4 mt-1 btn btn-secondary" href = "/new" role = "button">メモ作成</a>
+</div>
+</body>
+</html>
