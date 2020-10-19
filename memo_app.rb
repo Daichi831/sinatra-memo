@@ -4,12 +4,20 @@ require 'json'
 require 'securerandom'
 
 class Memo
+
   # jsonファイルを読み込む
   def self.read
+    # jsonファイルが存在しなかったら"memo.json"を作成する
+    unless File.exist?("memo.json")
+    # "memo.json"を{"memos" => []}の保存形式にする
+      Memo.save(memo_data = {"memos" => {}})
+    end
+
     File.open("memo.json") do |data|
       JSON.load(data)
     end
   end
+
   # memo_dataの内容を保存する
   def self.save(memo_data)
     File.open("memo.json", 'w') do |v|
@@ -24,11 +32,6 @@ end
 
 get '/memos' do
   @title = 'topページ'
-  # jsonファイルが存在しなかったら"memo.json"を作成する
-  unless File.exist?("memo.json")
-    # "memo.json"を{"memos" => []}の保存形式にする
-    Memo.save(memo_data = {"memos" => []})
-  end
   @memo_data = Memo.read
   erb :top
 end
@@ -43,11 +46,9 @@ post '/memos' do
   # memo.jsonを開く（読み込み）
   memo_data = Memo.read
 
-  # メモデータをadd_memo_dataにいれる
+  # メモデータを追加する
   id = SecureRandom.uuid
-  add_memo_data = {"#{id}" => {"title": params[:memo_title], "content": params[:memo_content]}}
-  memo_data["memos"].push(add_memo_data)
-
+  memo_data["memos"]["#{id}"] = {"title": params[:memo_title], "content": params[:memo_content]}
   # メモデータを保存する（書き込み）
   Memo.save(memo_data)
 
@@ -58,13 +59,8 @@ get '/memos/:id' do |id|
   @title = '詳細ページ'
   @id = id
   memo_data = Memo.read
-
-  memo_data["memos"].each do |one_data|
-    # idに紐付いたメモデータをone_memo_dataにいれる
-    if @one_memo_data == nil
-       @one_memo_data = one_data[@id]
-    end
-  end
+  # idに紐付いたデータを格納する
+  @memo = memo_data["memos"][@id]
 
   erb :show
 end
@@ -72,11 +68,11 @@ end
 delete '/memos/:id' do |id|
   @id = id
   memo_data = Memo.read
-
-  # URIのidと一致したハッシュを削除する
-  memo_data["memos"].each do |one_data|
-    one_data.delete_if {|memo_id| memo_id == @id}
-  end
+  memo = memo_data["memos"][@id]
+  # データを削除
+  memo.delete("title")
+  memo.delete("content")
+  memo_data["memos"].delete(@id)
   # 削除した結果を保存
   Memo.save(memo_data)  
   redirect '/memos'
@@ -85,17 +81,10 @@ end
 patch '/memos/:id' do |id|
   @id = id
   memo_data = Memo.read
-  edit_memo_data = { @id => {"title": params[:memo_title], "content": params[:memo_content]}}
-  memo_data["memos"].each do |one_data|
-    one_data.each do |memo_id, memo|
-      # idがあるものだけ書き換え処理を行う
-      if memo_id == @id
-        
-        # one_dataの既存データを書き換える
-        one_data.merge!(edit_memo_data)
-      end
-    end
-  end
+  # 更新データ
+  edit_memo_data = {"title": params[:memo_title], "content": params[:memo_content]}
+  # データの更新
+  memo_data["memos"][@id].merge!(edit_memo_data)
   # データを保存
   Memo.save(memo_data)
   redirect '/memos'
@@ -105,12 +94,13 @@ get '/memos/:id/edit' do |id|
   @title = '編集ページ'
   @id = id
   memo_data = Memo.read
-
-  memo_data["memos"].each do |one_data|
-    # idに紐付いたメモデータをedit_dataにいれる
-    if @edit_data == nil
-       @edit_data = one_data[@id]
-    end
-  end
+  memo = memo_data["memos"][@id]
+  @edit_data = memo
   erb :edit
+end
+
+helpers do
+  def h(text)
+    Rack::Utils.escape_html(text)
+  end
 end
