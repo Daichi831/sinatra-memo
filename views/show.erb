@@ -1,8 +1,8 @@
 <html>
 <body>
 <div class="text-center">
-  <p><font size="6">タイトル：<%= @one_memo_data["title"]%></font></p>
-  <p><font size="6">内容：<%= @one_memo_data["content"]%></font></p>
+  <p><font size="6">タイトル：<%= h(@memo["title"])%></font></p>
+  <p><font size="6">内容：<%= h(@memo["content"])%></font></p>
   <a class = "btn btn-secondary" href = "/memos/<%= @id%>/edit" role="button">変更</a>
     <form  action = "/memos/<%= @id%>" method = "post">
       <input type = "hidden" name = "_method" value = "delete">     
