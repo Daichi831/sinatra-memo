@@ -41,7 +41,6 @@ get '/new' do
   erb :new
 end
 
-
 post '/memos' do
   # memo.jsonを開く（読み込み）
   memo_data = Memo.read
@@ -70,8 +69,6 @@ delete '/memos/:id' do |id|
   memo_data = Memo.read
   memo = memo_data["memos"][@id]
   # データを削除
-  memo.delete("title")
-  memo.delete("content")
   memo_data["memos"].delete(@id)
   # 削除した結果を保存
   Memo.save(memo_data)  
