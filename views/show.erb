@@ -1,9 +1,12 @@
 <div class="text-center">
-  <p><font size="6">タイトル：<%= h(@memo["title"]) %></font></p>
-  <p><font size="6">内容：<%= h(@memo["content"]) %></font></p>
-  <a class="btn btn-secondary" href="/memos/<%= @id %>/edit" role="button">変更</a>
-    <form  action="/memos/<%= @id%>" method="post">
-      <input type="hidden" name="_method" value="delete">     
-      <button type="submit" class="mt-1 btn btn-secondary">削除</button>  
-    </form>
+  <% @memos.each do |m| %>
+    <p><font size="6">タイトル：<%= h(m["title"]) %></font></p>
+    <p><font size="6">内容：<%= h(m["content"]) %></font></p>
+  
+    <a class="btn btn-secondary" href="/memos/<%= m["id"] %>/edit" role="button">変更</a>
+      <form  action="/memos/<%= m["id"] %>" method="post">
+        <input type="hidden" name="_method" value="delete">     
+        <button type="submit" class="mt-1 btn btn-secondary">削除</button>  
+      </form>
+  <% end %>
 </div>

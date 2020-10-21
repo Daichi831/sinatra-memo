@@ -1,9 +1,11 @@
 <div class="text-center">
-  <form action="/memos/<%= @id%>" method="post">
+<% @memos.each do |m| %>
+  <form action="/memos/<%= m["id"] %>" method="post">
   <div class="form-group">
-    <p><font size="5">タイトル：<input type="text" name="memo_title" class="form-control" value=<%= @edit_data["title"] %>></font></p>
-    <p><font size="5">内容：<textarea name="memo_content" class="form-control" rows="5"><%= @edit_data["content"] %></textarea></font></p>
+    <p><font size="5">タイトル：<input type="text" name="memo_title" class="form-control" value=<%= m["title"] %>></font></p>
+    <p><font size="5">内容：<textarea name="memo_content" class="form-control" rows="5"><%= m["content"] %></textarea></font></p>
   </div>
+<% end %>
     <input type="hidden" name="_method" value="patch">
       <div class="button">
         <button type="submit" class="btn btn-secondary">保存</button>
