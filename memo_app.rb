@@ -7,21 +7,38 @@ get '/' do
   redirect '/memos'
 end
 
-def load(sql)
+def connect
   # データベースに接続する
-  @conn = PG::connect(host: ENV['DATABASE_HOST'], 
+  conn = PG::connect(host: ENV['DATABASE_HOST'], 
                       user: ENV['DATABASE_USER'], 
                       password: ENV['DATABASE_PASSWORD'], 
                       dbname: ENV['DATABASE_NAME'])
-  memos = @conn.exec(sql)
-  @conn.finish
-  memos
+end
+
+def list
+  connect.exec("select * from Memos;")
+end
+
+def create(memo_title, memo_content)
+  connect.exec("INSERT INTO Memos (title, content) VALUES ($1, $2);",[memo_title, memo_content])
+end
+
+def show(id)
+  connect.exec("SELECT id, title, content FROM Memos WHERE id = $1;",[id])
+end
+
+def delete(id)
+  connect.exec("DELETE FROM Memos WHERE id = $1;",[id])
+end
+
+def update(memo_title, memo_content, id)
+  connect.exec("UPDATE Memos SET title = $1, content = $2 WHERE id = $3;",[memo_title, memo_content, id])
 end
 
 get '/memos' do
   @page_title = "トップページ"
-   # 全データを取得するためSQL文を実行する
-   @memos = load("select * from Memos;")
+  # 全データを取得するためSQL文を実行する
+  @memos = list
   erb :top
 end
 
@@ -32,41 +49,40 @@ end
 
 post '/memos' do
   # newページで入力された情報を受け取る
-  memo_title = params[:memo_title]
-  memo_content = params[:memo_content]
+  @memo_title = params[:memo_title]
+  @memo_content = params[:memo_content]
   # データベースに登録する
-  sql = "INSERT INTO Memos (title, content) VALUES ('#{memo_title}', '#{memo_content}');"
-  @memos = load(sql)
-
+  create(@memo_title, @memo_content)
   redirect '/memos'
 end
 
-get '/memos/:id' do |n|
+get '/memos/:id' do |id|
   @page_title = "詳細ページ"
+  @id = id
   # idと同じ行のメモデータを選択する
-  @memos = load("SELECT id, title, content FROM Memos WHERE id = '#{n}';")
+  @memos = show(@id)
   erb :show
 end
 
-delete '/memos/:id' do |n|
+delete '/memos/:id' do |id|
+  @id = id
   # idが一致した行のデータを削除
-  sql = "DELETE FROM Memos WHERE id = '#{n}';"
-  load(sql)
+  delete(@id)
   redirect '/memos'
 end
 
-get '/memos/:id/edit' do |n|
+get '/memos/:id/edit' do |id|
   @page_title = "編集ページ"
-  sql = "SELECT id, title, content FROM Memos WHERE id = '#{n}';"
-  @memos = load(sql)
+  @id = id
+  @memos = show(@id)
   erb :edit
 end
 
-patch '/memos/:id' do |n|
-  memo_title = params[:memo_title]
-  memo_content = params[:memo_content]
-  sql = "UPDATE Memos SET title = '#{memo_title}', content = '#{memo_content}' WHERE id = '#{n}';"
-  @memos = load(sql)
+patch '/memos/:id' do |id|
+  @id = id
+  @memo_title = params[:memo_title]
+  @memo_content = params[:memo_content]
+  update(@memo_title, @memo_content, @id)
   redirect '/memos'
 end
 
