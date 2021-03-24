@@ -1,9 +1,9 @@
 <div>
   <h1 class="ml-3"><font size="5">メモ一覧</font></h1>
   <div class="border border-dark col-auto">
-    <% @memo_data["memos"].each do |memo_id, memo| %>
+    <% @memos.each do |m| %>
       <ul>
-        <li><a href="/memos/<%= memo_id %>"><%= memo["title"] %></a></li>
+        <li><a href="/memos/<%= m["id"] %>"><%= m["title"] %></a></li>
       </ul>
     <% end %>
   </div>

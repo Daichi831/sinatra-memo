@@ -1,101 +1,92 @@
 require 'sinatra'
 require 'sinatra/reloader'
-require 'json'
-require 'securerandom'
-
-class Memo
-
-  # jsonファイルを読み込む
-  def self.read
-    # jsonファイルが存在しなかったら"memo.json"を作成する
-    unless File.exist?("memo.json")
-    # "memo.json"を{"memos" => []}の保存形式にする
-      Memo.save(memo_data = {"memos" => {}})
-    end
-
-    File.open("memo.json") do |data|
-      JSON.load(data)
-    end
-  end
-
-  # memo_dataの内容を保存する
-  def self.save(memo_data)
-    File.open("memo.json", 'w') do |v|
-     JSON.dump(memo_data, v)
-   end
-  end
-end
+require 'pg'
+require 'dotenv/load'
 
 get '/' do
   redirect '/memos'
 end
 
+def connect
+  # データベースに接続する
+  conn = PG::connect(host: ENV['DATABASE_HOST'], 
+                      user: ENV['DATABASE_USER'], 
+                      password: ENV['DATABASE_PASSWORD'], 
+                      dbname: ENV['DATABASE_NAME'])
+end
+
+def list
+  connect.exec("select * from Memos;")
+end
+
+def create(memo_title, memo_content)
+  connect.exec("INSERT INTO Memos (title, content) VALUES ($1, $2);",[memo_title, memo_content])
+end
+
+def show(id)
+  connect.exec("SELECT id, title, content FROM Memos WHERE id = $1;",[id])
+end
+
+def delete(id)
+  connect.exec("DELETE FROM Memos WHERE id = $1;",[id])
+end
+
+def update(memo_title, memo_content, id)
+  connect.exec("UPDATE Memos SET title = $1, content = $2 WHERE id = $3;",[memo_title, memo_content, id])
+end
+
 get '/memos' do
-  @title = 'topページ'
-  @memo_data = Memo.read
+  @page_title = "トップページ"
+  # 全データを取得するためSQL文を実行する
+  @memos = list
   erb :top
 end
 
 get '/new' do
-  @title = '新規作成ページ'
+  @page_title = "新規作成ページ"
   erb :new
 end
 
 post '/memos' do
-  # memo.jsonを開く（読み込み）
-  memo_data = Memo.read
-
-  # メモデータを追加する
-  id = SecureRandom.uuid
-  memo_data["memos"]["#{id}"] = {"title": params[:memo_title], "content": params[:memo_content]}
-  # メモデータを保存する（書き込み）
-  Memo.save(memo_data)
-
+  # newページで入力された情報を受け取る
+  @memo_title = params[:memo_title]
+  @memo_content = params[:memo_content]
+  # データベースに登録する
+  create(@memo_title, @memo_content)
   redirect '/memos'
 end
 
 get '/memos/:id' do |id|
-  @title = '詳細ページ'
+  @page_title = "詳細ページ"
   @id = id
-  memo_data = Memo.read
-  # idに紐付いたデータを格納する
-  @memo = memo_data["memos"][@id]
-
+  # idと同じ行のメモデータを選択する
+  @memos = show(@id)
   erb :show
 end
 
 delete '/memos/:id' do |id|
   @id = id
-  memo_data = Memo.read
-  memo = memo_data["memos"][@id]
-  # データを削除
-  memo_data["memos"].delete(@id)
-  # 削除した結果を保存
-  Memo.save(memo_data)  
-  redirect '/memos'
-end
-
-patch '/memos/:id' do |id|
-  @id = id
-  memo_data = Memo.read
-  # 更新データ
-  edit_memo_data = {"title": params[:memo_title], "content": params[:memo_content]}
-  # データの更新
-  memo_data["memos"][@id].merge!(edit_memo_data)
-  # データを保存
-  Memo.save(memo_data)
+  # idが一致した行のデータを削除
+  delete(@id)
   redirect '/memos'
 end
 
 get '/memos/:id/edit' do |id|
-  @title = '編集ページ'
+  @page_title = "編集ページ"
   @id = id
-  memo_data = Memo.read
-  memo = memo_data["memos"][@id]
-  @edit_data = memo
+  @memos = show(@id)
   erb :edit
 end
 
+patch '/memos/:id' do |id|
+  @id = id
+  @memo_title = params[:memo_title]
+  @memo_content = params[:memo_content]
+  update(@memo_title, @memo_content, @id)
+  redirect '/memos'
+end
+
+# escape処理
 helpers do
   def h(text)
     Rack::Utils.escape_html(text)
